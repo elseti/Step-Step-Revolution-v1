@@ -1,0 +1,761 @@
+module fsm_module (
+    input clk,  // clock
+    input rst, // reset
+    input start, //start button
+    input button1,
+    input button2,
+    input button3,
+    input button4,
+    input submit,
+    input display, //edge detector for displaying sequence
+    input edgeTimer, //edge detector for timer
+    output score[4],
+    output stateCheck[5], //to check states (testing only)
+    output led1,
+    output led2,
+    output led3,
+    output led4, //corresponds to each buttons's led
+    output ledSubmit,
+    output timerReset,
+    output timerOut1[4],
+    output timerOut2[4],
+    output timerStart //starts timer in au_top
+    
+ 
+  ) {
+  
+  // MODULE DECLARATION
+
+  alu al;
+  .clk(clk){
+
+    .rst(rst){
+
+    }
+  }
+  
+  timer timer1;
+  
+  pn_gen pngen;
+  ////////////////////////////////////////////////// REGISTERS /////////////////////////////////////////////////////////
+  dff round_no[16](#INIT(0), .clk(clk), .rst(rst)); //stores round number
+  dff seq_round1[16](#INIT(0), .clk(clk), .rst(rst)); //stores the dislay sequence; used in checking user input
+  dff seq_round2[16](#INIT(0), .clk(clk), .rst(rst));
+  dff seq_round3[16](#INIT(0), .clk(clk), .rst(rst));
+  dff seed[16](#INIT(0), .clk(clk), .rst(rst)); //stores the seed for use in GENSEQ state
+  dff user_input1[16](.clk(clk), .rst(rst)); //stores user input
+  dff user_input2[16](.clk(clk), .rst(rst)); //stores user input
+  dff user_input3[16](.clk(clk), .rst(rst)); //stores user input
+  dff input_counter1[4](#INIT(0), .clk(clk), .rst(rst)); //input counter used in IDLE state when user inputs
+  dff input_counter2[4](#INIT(0), .clk(clk), .rst(rst)); //
+  dff input_counter3[4](#INIT(0), .clk(clk), .rst(rst)); //
+  dff seqDis1[16](#INIT(0), .clk(clk), .rst(rst)); //stores sequences of leds to light up
+  dff seqDis2[16](#INIT(0), .clk(clk), .rst(rst));
+  dff seqDis3[16](#INIT(0), .clk(clk), .rst(rst));
+  dff temp[16](#INIT(0), .clk(clk), .rst(rst)); //temporary signal for temporary means
+  dff led_submit(#INIT(0), .clk(clk), .rst(rst)); //stores if led_submit should light up
+
+  // counters
+  counter timerClock(#SIZE(1), #DIV(25), .clk(clk), .rst(rst));
+  
+  //fsm declaration
+  fsm stateList(.clk(clk), .rst(rst))= {INIT, START, L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, GENSEQ, WAIT, DISPLAYSEQ, SAVE, IDLE, CHECK, WIN, LOSE, GAMEOVER, PAUSE, B1, B2, B3, B4, FANFARE1, FANFARE2, FANFARE3, FANFARE_WAIT1, FANFARE_WAIT2, FANFARE_WAIT3};
+  
+  
+  
+  ////////////// for random generator //////////////////////
+  sig seq1[3];
+  sig seq2[3];
+  sig seq3[3];
+  sig seq4[3];
+  sig seq5[3];
+  sig seq6[3];
+  sig seq7[3];
+  sig seq8[3];
+  sig seq9[3];
+  sig seq10[3];
+  sig seq11[3];
+  sig pngen_out[32]; //ouput of pngen
+  
+  sig out1[16];
+  sig out2[16];
+  sig out3[16];
+  
+  ///////////////////////////////// dffs to track per clock /////////////////////////////////
+  
+  
+  always {
+    ///////////////////////////////// NECESSARY ASSIGNMENTS /////////////////////////////////////
+    led1= b0;
+    led2= b0;
+    led3= b0;
+    led4= b0;
+    
+    ledSubmit= led_submit.q;
+    
+    score= round_no.q[3:0];
+    
+    stateCheck= 5b0;
+
+    //pngen module
+    pngen.rst= rst;
+    pngen.clk= clk;
+    pngen.next= b0;
+    pngen.seed= d5;
+    
+    //alu
+    al.a=16b0;
+    al.b=16b0;
+    al.alufn= b00000;
+    
+    out1= 16b0;
+    out2= 16b0;
+    out3= 16b0;
+
+    timerStart=b0;
+    timerReset= b0;
+    timer1.clk= timerClock.value;
+    timer1.rst= b0;
+    timer1.start= b0;
+    timerOut1= timer1.out1;
+    timerOut2= timer1.out2;
+    
+    seed.d= d5;
+    //////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////// STATES ////////////////////////////////////////
+    
+    //start button works as a reset button too
+    if(start){
+      round_no.d= 16b0;
+      seq_round1.d= 16b0;
+      seq_round2.d= 16b0;
+      seed.d= seed.q+1; //seed+1
+      user_input1.d= 16b0;
+      user_input2.d= 16b0;
+      user_input3.d= 16b0;
+      input_counter1.d= 4b0;
+      input_counter2.d= 4b0;
+      input_counter3.d= 4b0;
+      seqDis1.d= 16b0;
+      seqDis2.d= 16b0;
+      seqDis3.d= 16b0;
+      led_submit.d= b0;
+      stateList.d= stateList.INIT;
+    }
+    
+    
+    case(stateList.q){
+    
+      stateList.INIT:
+        timer1.rst= b1;
+        if(edgeTimer){
+          stateList.d= stateList.START;
+        }
+        
+      stateList.START:
+        stateCheck= b00001;
+        
+        stateList.d= stateList.L1;
+
+
+           
+      stateList.GENSEQ: //generates the random button sequence
+        stateCheck= b00010;
+        
+        pngen.seed = seed.q; //pass read seed to pngen
+        pngen.next= b1;
+        pngen.rst= rst;
+        pngen.clk= clk;
+        pngen_out= pngen.num;
+        
+
+        seq1= pngen_out[1:0];
+        seq2= pngen_out[3:2];
+        seq3= pngen_out[5:4];
+        seq4= pngen_out[7:6];
+        seq5= pngen_out[9:8];
+        seq6= pngen_out[11:10];
+        seq7= pngen_out[13:12];
+        seq8= pngen_out[15:14];
+        seq9= pngen_out[17:16];
+        seq10= pngen_out[19:18];
+        seq11= pngen_out[21:20];
+        
+        //change add 1 to correspond to buttons
+        case(seq1){ 
+          b000: seq1=b001;
+          b001: seq1=b010;
+          b010: seq1=b011;
+          b011: seq1=b100;
+        }
+        case(seq2){
+          b000: seq2=b001;
+          b001: seq2=b010;
+          b010: seq2=b011;
+          b011: seq2=b100;
+        }
+        case(seq3){
+          b000: seq3=b001;
+          b001: seq3=b010;
+          b010: seq3=b011;
+          b011: seq3=b100;
+        }
+        case(seq4){
+          b000: seq4=b001;
+          b001: seq4=b010;
+          b010: seq4=b011;
+          b011: seq4=b100;
+        }
+        case(seq5){
+          b000: seq5=b001;
+          b001: seq5=b010;
+          b010: seq5=b011;
+          b011: seq5=b100;
+        }
+        case(seq6){
+          b000: seq6=b001;
+          b001: seq6=b010;
+          b010: seq6=b011;
+          b011: seq6=b100;
+        }
+        case(seq7){
+          b000: seq7=b001;
+          b001: seq7=b010;
+          b010: seq7=b011;
+          b011: seq7=b100;
+        }
+        case(seq8){
+          b000: seq8=b001;
+          b001: seq8=b010;
+          b010: seq8=b011;
+          b011: seq8=b100;
+        }
+        case(seq9){
+          b000: seq9=b001;
+          b001: seq9=b010;
+          b010: seq9=b011;
+          b011: seq9=b100;
+        }
+        case(seq10){
+          b000: seq10=b001;
+          b001: seq10=b010;
+          b010: seq10=b011;
+          b011: seq10=b100;
+        }
+        case(seq11){
+          b000: seq11=b001;
+          b001: seq11=b010;
+          b010: seq11=b011;
+          b011: seq11=b100;
+        }
+        
+        //assigns out depending on round_no
+        case(round_no.q){
+          d1: 
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+
+          d2:
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+            out1[11:8]= seq3;
+          
+          d3:
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+            out1[11:8]= seq3;
+            out1[15:12]= seq4;
+
+          d4:
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+            out1[11:8]= seq3;
+            out1[15:12]= seq4;
+            out2[3:0]= seq5;
+          
+          d5:
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+            out1[11:8]= seq3;
+            out1[15:12]= seq4;
+            out2[3:0]= seq5;
+            out2[7:4]= seq6;
+          
+          d6:
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+            out1[11:8]= seq3;
+            out1[15:12]= seq4;
+            out2[3:0]= seq5;
+            out2[7:4]= seq6;
+            out2[11:8]= seq7;
+            
+          d7:
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+            out1[11:8]= seq3;
+            out1[15:12]= seq4;
+            out2[3:0]= seq5;
+            out2[7:4]= seq6;
+            out2[11:8]= seq7;
+            out2[15:12]= seq8;
+            
+          d8:
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+            out1[11:8]= seq3;
+            out1[15:12]= seq4;
+            out2[3:0]= seq5;
+            out2[7:4]= seq6;
+            out2[11:8]= seq7;
+            out2[15:12]= seq8;
+            out3[3:0]= seq9;
+          
+          
+          d9:
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+            out1[11:8]= seq3;
+            out1[15:12]= seq4;
+            out2[3:0]= seq5;
+            out2[7:4]= seq6;
+            out2[11:8]= seq7;
+            out2[15:12]= seq8;
+            out3[3:0]= seq9;
+            out3[7:4]= seq10;
+            
+          
+          d10:
+            out1[3:0]= seq1;
+            out1[7:4]= seq2;
+            out1[11:8]= seq3;
+            out1[15:12]= seq4;
+            out2[3:0]= seq5;
+            out2[7:4]= seq6;
+            out2[11:8]= seq7;
+            out2[15:12]= seq8;
+            out3[3:0]= seq9;
+            out3[7:4]= seq10;
+            out3[11:8]= seq11;
+   
+        }
+        
+        //put sequence in dff
+        seq_round1.d= out1;
+        seq_round2.d= out2;
+        seq_round3.d= out3;
+        
+        //put sequence in modifiable-dff (temporary)
+        seqDis1.d= out1;
+        seqDis2.d= out2;
+        seqDis3.d= out3;
+        
+        stateList.d= stateList.DISPLAYSEQ;
+        
+
+      stateList.DISPLAYSEQ:
+        stateCheck= b00011;
+        
+        //use ALU to shift the seqDis dffs right
+        al.a=16b0;
+        al.b=d4; //4
+        al.alufn= b100001; //shift right
+
+        if(seqDis1.q!=16b0){
+          if(seqDis1.q[3:0]==b0001){ //button1 light up
+            led1= b1;
+            stateList.d= stateList.B1;
+            //shift right by 4 with ALU
+            al.a= seqDis1.q;
+            seqDis1.d = al.res;
+          }
+          else if(seqDis1.q[3:0]==b0010){
+            led2= b1;
+            stateList.d= stateList.B2;
+            al.a= seqDis1.q;
+            seqDis1.d= al.res;
+          }
+          else if(seqDis1.q[3:0]==b0011){
+            led3= b1;
+            stateList.d= stateList.B3;
+            al.a= seqDis1.q;
+            seqDis1.d= al.res;
+          }
+          else if(seqDis1.q[3:0]==b0100){
+            led4= b1;
+            stateList.d= stateList.B4;
+            al.a= seqDis1.q;
+            seqDis1.d= al.res;
+          }
+        }
+        else if(seqDis2.q!=16b0){
+          if(seqDis2.q[3:0]==b0001){ //button1 light up
+            stateList.d= stateList.B1;
+            al.a= seqDis2.q;
+            seqDis2.d = al.res;
+          }
+          else if(seqDis2.q[3:0]==b0010){
+            stateList.d= stateList.B2;
+            al.a= seqDis2.q;
+            seqDis2.d= al.res;
+          }
+          else if(seqDis2.q[3:0]==b0011){
+            stateList.d= stateList.B3;
+            al.a= seqDis2.q;
+            seqDis2.d= al.res;
+          }
+          else if(seqDis2.q[3:0]==b0100){
+            stateList.d= stateList.B4;
+            al.a= seqDis2.q;
+            seqDis2.d= al.res;
+          }
+        }
+        else if(seqDis3.q!=16b0){
+          if(seqDis3.q[3:0]==b0001){ 
+            stateList.d= stateList.B1;
+            al.a= seqDis3.q;
+            seqDis3.d = al.res;
+          }
+          else if(seqDis3.q[3:0]==b0010){
+            stateList.d= stateList.B2;
+            al.a= seqDis3.q;
+            seqDis3.d= al.res;
+          }
+          else if(seqDis3.q[3:0]==b0011){
+            stateList.d= stateList.B3;
+            al.a= seqDis3.q;
+            seqDis3.d= al.res;
+          }
+          else if(seqDis3.q[3:0]==b0100){
+            stateList.d= stateList.B4;
+            al.a= seqDis3.q;
+            seqDis3.d= al.res;
+          }
+        }
+        //if all seqDis registers are zero (all sequences have been displayed). go to SAVE
+        else if(seqDis1.q==16b0 && seqDis2.q==16b0 && seqDis3.q==16b0){
+          temp.d= seed.q; //read seed and put in dff temp 
+          stateList.d= stateList.SAVE;
+        }
+      
+      //light up buttons
+      stateList.B1:
+        stateCheck= b10101;
+        led1= b1;
+        al.alufn= b110011;
+        al.a= display;
+        al.b= b1;
+        if(al.res[0]){
+          stateList.d= stateList.PAUSE;
+        }
+
+      stateList.B2:
+        led2= b1;
+        al.alufn= b110011;
+        al.a= display;
+        al.b= b1;
+        if(al.res[0]){
+          stateList.d= stateList.PAUSE;
+        }
+        
+        
+      stateList.B3:
+        led3= b1;
+        al.alufn= b110011;
+        al.a= display;
+        al.b= b1;
+        if(al.res[0]){
+          stateList.d= stateList.PAUSE;
+        }
+        
+        
+      stateList.B4:
+        stateCheck= b10101;
+        led4= b1;
+        al.alufn= b110011;
+        al.a= display;
+        al.b= b1;
+        if(al.res[0]){
+          stateList.d= stateList.PAUSE;
+        }
+      
+      //pause for a while before showing the next led sequence
+      stateList.PAUSE:
+        if(display){
+          stateList.d= stateList.DISPLAYSEQ;
+        }  
+
+      //store and modify seed
+      stateList.SAVE:
+        al.alufn= b000000; //add seed by 5 with ALU
+        al.a= seed.q;
+        al.b= d5;
+        seed.d= al.res;
+        stateList.d= stateList.IDLE;
+
+      
+      ////////////////////////////////////  LEVELS /////////////////////////////////////
+        
+      stateList.L1:
+        stateCheck= b00100;
+        round_no.d= d1; //write 1 in round_no 
+        stateList.d= stateList.GENSEQ;
+
+      stateList.L2:
+        stateCheck= b00101;
+        round_no.d= d2;
+        stateList.d= stateList.GENSEQ;
+        
+      stateList.L3:
+        stateCheck= b00110;
+        round_no.d= d3;
+        stateList.d= stateList.GENSEQ;
+        
+      stateList.L4:
+        stateCheck= b00111;
+        round_no.d= d4;
+        stateList.d= stateList.GENSEQ;
+        
+      stateList.L5:
+        stateCheck= b01000;
+        round_no.d= d5;
+        stateList.d= stateList.GENSEQ;
+        
+      stateList.L6:
+        stateCheck= b01001;
+        round_no.d= d6;
+        stateList.d= stateList.GENSEQ;
+        
+      stateList.L7:
+        stateCheck= b01010;
+        round_no.d= d7;
+        stateList.d= stateList.GENSEQ;
+        
+      stateList.L8:
+        stateCheck= b01011;
+        round_no.d= d8;
+        stateList.d= stateList.GENSEQ;
+        
+      stateList.L9:
+        stateCheck= b01100;
+        round_no.d=d9;
+        stateList.d= stateList.GENSEQ;
+        
+      stateList.L10:
+        stateCheck= b01101;
+        round_no.d= d10;
+        stateList.d= stateList.GENSEQ;
+        
+      ////////////////////////////////////////////////// CHECK USER INPUT ///////////////////////////////////////////
+        
+      stateList.IDLE: //wait for user input
+        stateCheck= b01110;
+        led_submit.d= b1; //light up the led submit button when it's time for the user to input
+
+        timer1.start= b1; //start timer
+        timer1.rst= b0;
+
+        if(timer1.isOver){ //check if timer has ran out, if yes then go to LOSE
+          input_counter1.d= d0; //reset input counter back to 0
+          input_counter2.d= d0;
+          input_counter3.d= d0;
+          led_submit.d= b0;
+          timer1.rst=b1;
+          stateList.d= stateList.LOSE;
+        }
+        
+        //check if first user input register can be stored in
+        if(user_input1.q[3:0]==4b0){
+          if(button1==b1){ //store if button 1 is pressed
+            user_input1.d = user_input1.q>>4;
+            user_input1.d[15:12]=b0001;
+            input_counter1.d = input_counter1.q+1;
+          }
+          if (button2==b1){ //store if button 2 is pressed
+            user_input1.d = user_input1.q>>4;
+            user_input1.d[15:12]=b0010;
+            input_counter1.d = input_counter1.q+1;
+  
+          }
+          if (button3==b1){//store if button 3 is pressed
+            user_input1.d = user_input1.q>>4;
+            user_input1.d[15:12]=b0011;
+            input_counter1.d = input_counter1.q+1;
+            
+          }
+          if (button4==b1){ //store if button 4 is pressed
+            user_input1.d = user_input1.q>>4;
+            user_input1.d[15:12] = b0100;
+            input_counter1.d = input_counter1.q+1;
+  
+          }
+        }
+        
+        else if(user_input2.q[3:0]==4b0){
+          if(button1==b1){ //store if button 1 is pressed
+            user_input2.d = user_input2.q>>4;
+            user_input2.d[15:12]=b0001;
+            input_counter2.d = input_counter2.q+1;
+          }
+          if (button2==b1){ //store if button 2 is pressed
+            user_input2.d = user_input2.q>>4;
+            user_input2.d[15:12]=b0010;
+            input_counter2.d = input_counter2.q+1;
+  
+          }
+          if (button3==b1){//store if button 3 is pressed
+            user_input2.d = user_input2.q>>4;
+            user_input2.d[15:12]=b0011;
+            input_counter2.d = input_counter2.q+1;
+            
+          }
+          if (button4==b1){ //store if button 4 is pressed
+            user_input2.d = user_input2.q>>4;
+            user_input2.d[15:12] = b0100;
+            input_counter2.d = input_counter2.q+1;
+  
+          }
+
+        }
+        
+        else if(user_input3.q[3:0]==4b0){
+          if(button1==b1){ //store if button 1 is pressed
+            user_input3.d = user_input3.q>>4;
+            user_input3.d[15:12]=b0001;
+            input_counter3.d = input_counter3.q+1;
+          }
+          if (button2==b1){ //store if button 2 is pressed
+            user_input3.d = user_input3.q>>4;
+            user_input3.d[15:12]=b0010;
+            input_counter3.d = input_counter3.q+1;
+  
+          }
+          if (button3==b1){//store if button 3 is pressed
+            user_input3.d = user_input3.q>>4;
+            user_input3.d[15:12]=b0011;
+            input_counter3.d = input_counter3.q+1;
+            
+          }
+          if (button4==b1){ //store if button 4 is pressed
+            user_input3.d = user_input3.q>>4;
+            user_input3.d[15:12] = b0100;
+            input_counter3.d = input_counter3.q+1;
+  
+          }
+
+        }
+        if (submit == b1) { //if submit button is pressed
+          //shift according to input counter such that it matches the sequences
+          if(user_input1.q!=16b0){
+            user_input1.d= user_input1.q>>(16-input_counter1.q*4); 
+          }
+          if(user_input2.q!=16b0){
+            user_input2.d= user_input2.q>>(16-input_counter2.q*4); 
+          }
+          if(user_input3.q!=16b0){
+            user_input3.d= user_input3.q>>(16-input_counter3.q*4); 
+          }
+          
+          input_counter1.d= d0; //reset input counter back to 0
+          input_counter2.d= d0;
+          input_counter3.d= d0;
+          
+          led_submit.d= b0;
+          stateList.d= stateList.WAIT;
+        }
+        
+    
+      stateList.WAIT: //intermediary state to give proper reset signal to timer
+        timer1.rst= b1;
+        if(edgeTimer){
+          stateList.d= stateList.CHECK;
+        }
+
+      stateList.CHECK: //check user input
+        stateCheck= b10010;
+        
+        //if sequence is correct, go to next round
+        if(user_input1.q==seq_round1.q && user_input2.q==seq_round2.q && user_input3.q==seq_round3.q){
+          user_input1.d=16b0;
+          user_input2.d=16b0;
+          user_input3.d=16b0;
+          case(round_no.q){
+            d1: stateList.d= stateList.L2;
+            d2: stateList.d= stateList.L3;
+            d3: stateList.d= stateList.L4;
+            d4: stateList.d= stateList.L5;
+            d5: stateList.d= stateList.L6;
+            d6: stateList.d= stateList.L7;
+            d7: stateList.d= stateList.L8;
+            d8: stateList.d= stateList.L9;
+            d9: stateList.d= stateList.L10;
+            d10: stateList.d= stateList.WIN;     
+          }
+        }
+        
+        //if sequence is wrong, go to LOSE.
+        else{
+          stateList.d= stateList.LOSE;
+        }
+
+      stateList.WIN: //you win and there are some leds flashing hooray
+        stateCheck= b01111;
+        stateList.d= stateList.FANFARE1;
+      
+      stateList.FANFARE1:
+        led1= b1;
+        led2= b1;
+        led3= b1;
+        led4= b1;
+        if(display){
+          stateList.d= stateList.FANFARE_WAIT1;
+        }
+        
+      stateList.FANFARE_WAIT1:
+        if(display){
+          stateList.d= stateList.FANFARE2;
+        }
+        
+      stateList.FANFARE2:
+        led1= b1;
+        led2= b1;
+        led3= b1;
+        led4= b1;
+        if(display){
+          stateList.d= stateList.FANFARE_WAIT2;
+        }
+        
+      stateList.FANFARE_WAIT2:
+        if(display){
+          stateList.d= stateList.FANFARE3;
+        }
+        
+      stateList.FANFARE3:
+        led1= b1;
+        led2= b1;
+        led3= b1;
+        led4= b1;
+        if(display){
+          stateList.d= stateList.FANFARE_WAIT3;
+        }
+        
+      stateList.FANFARE_WAIT3:
+        if(display){
+          stateList.d= stateList.GAMEOVER;
+        }
+        
+      stateList.LOSE:
+        stateCheck= b10000;
+        stateList.d= stateList.GAMEOVER;
+                
+      stateList.GAMEOVER: //all leds light up; wait for user to reset
+        stateCheck= b10001;
+        led1= b1;
+        led2= b1;
+        led3= b1;
+        led4= b1;
+      
+    }
+    
+  }
+}

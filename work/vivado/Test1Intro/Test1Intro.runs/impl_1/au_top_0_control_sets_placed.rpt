@@ -1,0 +1,102 @@
+Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2020.2 (win64) Build 3064766 Wed Nov 18 09:12:45 MST 2020
+| Date         : Mon Apr 18 21:37:44 2022
+| Host         : Eliana-PC running 64-bit major release  (build 9200)
+| Command      : report_control_sets -verbose -file au_top_0_control_sets_placed.rpt
+| Design       : au_top_0
+| Device       : xc7a35t
+-------------------------------------------------------------------------------------
+
+Control Set Information
+
+Table of Contents
+-----------------
+1. Summary
+2. Histogram
+3. Flip-Flop Distribution
+4. Detailed Control Set Information
+
+1. Summary
+----------
+
++----------------------------------------------------------+-------+
+|                          Status                          | Count |
++----------------------------------------------------------+-------+
+| Total control sets                                       |    24 |
+|    Minimum number of control sets                        |    24 |
+|    Addition due to synthesis replication                 |     0 |
+|    Addition due to physical synthesis replication        |     0 |
+| Unused register locations in slices containing registers |    90 |
++----------------------------------------------------------+-------+
+* Control sets can be merged at opt_design using control_set_merge or merge_equivalent_drivers
+** Run report_qor_suggestions for automated merging and remapping suggestions
+
+
+2. Histogram
+------------
+
++--------------------+-------+
+|       Fanout       | Count |
++--------------------+-------+
+| Total control sets |    24 |
+| >= 0 to < 4        |     1 |
+| >= 4 to < 6        |     6 |
+| >= 6 to < 8        |     0 |
+| >= 8 to < 10       |     0 |
+| >= 10 to < 12      |     1 |
+| >= 12 to < 14      |     3 |
+| >= 14 to < 16      |     2 |
+| >= 16              |    11 |
++--------------------+-------+
+* Control sets can be remapped at either synth_design or opt_design
+
+
+3. Flip-Flop Distribution
+-------------------------
+
++--------------+-----------------------+------------------------+-----------------+--------------+
+| Clock Enable | Synchronous Set/Reset | Asynchronous Set/Reset | Total Registers | Total Slices |
++--------------+-----------------------+------------------------+-----------------+--------------+
+| No           | No                    | No                     |              20 |           12 |
+| No           | No                    | Yes                    |               0 |            0 |
+| No           | Yes                   | No                     |             144 |           46 |
+| Yes          | No                    | No                     |              18 |           10 |
+| Yes          | No                    | Yes                    |               0 |            0 |
+| Yes          | Yes                   | No                     |             360 |          109 |
++--------------+-----------------------+------------------------+-----------------+--------------+
+
+
+4. Detailed Control Set Information
+-----------------------------------
+
++------------------------+----------------------------------------------------+----------------------------------------+------------------+----------------+--------------+
+|      Clock Signal      |                    Enable Signal                   |            Set/Reset Signal            | Slice Load Count | Bel Load Count | Bels / Slice |
++------------------------+----------------------------------------------------+----------------------------------------+------------------+----------------+--------------+
+|  clk_IBUF_BUFG         | fsmMod/M_led_submit_q_i_1_n_0                      | reset_cond/Q[0]                        |                1 |              1 |         1.00 |
+|  clk_IBUF_BUFG         |                                                    | reset_cond/M_reset_cond_in             |                3 |              4 |         1.33 |
+|  clk_IBUF_BUFG         | fsmMod/M_round_no_q[3]_i_1_n_0                     | reset_cond/Q[0]                        |                1 |              4 |         4.00 |
+|  fsmMod/timerClock/CLK | fsmMod/timer1/FSM_onehot_M_timerState_q[3]_i_2_n_0 | fsmMod/timer1/M_timer1_rst             |                2 |              4 |         2.00 |
+|  fsmMod/timerClock/CLK | fsmMod/timer1/M_digit1_d                           | fsmMod/timer1/M_timer1_rst             |                2 |              4 |         2.00 |
+|  fsmMod/timerClock/CLK | fsmMod/timer1/M_digit2_d                           | fsmMod/timer1/M_timer1_rst             |                1 |              4 |         4.00 |
+|  clk_IBUF_BUFG         | fsmMod/al/E[0]                                     | reset_cond/Q[0]                        |                4 |              5 |         1.25 |
+|  clk_IBUF_BUFG         | fsmMod/M_seqDis3_d                                 | reset_cond/Q[0]                        |                6 |             11 |         1.83 |
+|  clk_IBUF_BUFG         | fsmMod/M_user_input2_d                             | reset_cond/Q[0]                        |                7 |             12 |         1.71 |
+|  clk_IBUF_BUFG         | fsmMod/M_user_input1_d                             | reset_cond/Q[0]                        |                7 |             12 |         1.71 |
+|  clk_IBUF_BUFG         | fsmMod/M_user_input3_d                             | reset_cond/Q[0]                        |                7 |             12 |         1.71 |
+|  clk_IBUF_BUFG         | fsmMod/M_seqDis1_d                                 | reset_cond/Q[0]                        |                6 |             14 |         2.33 |
+|  clk_IBUF_BUFG         | fsmMod/M_seqDis2_d                                 | reset_cond/Q[0]                        |                5 |             14 |         2.80 |
+|  clk_IBUF_BUFG         | reset_cond/E[0]                                    |                                        |               10 |             18 |         1.80 |
+|  clk_IBUF_BUFG         |                                                    |                                        |               12 |             20 |         1.67 |
+|  clk_IBUF_BUFG         | btn_cond_b1/sel__0                                 | btn_cond_b1/sync/clear                 |                5 |             20 |         4.00 |
+|  clk_IBUF_BUFG         | btn_cond_b2/M_ctr_q_reg[6]_0                       | btn_cond_b2/sync/M_pipe_q_reg[1]_0     |                5 |             20 |         4.00 |
+|  clk_IBUF_BUFG         | btn_cond_b3/M_ctr_q_reg[6]_0                       | btn_cond_b3/sync/M_pipe_q_reg[1]_0     |                5 |             20 |         4.00 |
+|  clk_IBUF_BUFG         | btn_cond_b4/M_ctr_q_reg[6]_0                       | btn_cond_b4/sync/M_pipe_q_reg[1]_0     |                5 |             20 |         4.00 |
+|  clk_IBUF_BUFG         | btn_cond_start/M_ctr_q[0]_i_2__4_n_0               | btn_cond_start/sync/M_pipe_q_reg[1]_0  |                5 |             20 |         4.00 |
+|  clk_IBUF_BUFG         | btn_cond_submit/M_ctr_q_reg[5]_0                   | btn_cond_submit/sync/M_pipe_q_reg[1]_0 |                5 |             20 |         4.00 |
+|  clk_IBUF_BUFG         | fsmMod/M_seq_round1_d                              | reset_cond/Q[0]                        |                5 |             24 |         4.80 |
+|  clk_IBUF_BUFG         | fsmMod/pngen/E[0]                                  | reset_cond/Q[0]                        |               25 |            119 |         4.76 |
+|  clk_IBUF_BUFG         |                                                    | reset_cond/Q[0]                        |               43 |            140 |         3.26 |
++------------------------+----------------------------------------------------+----------------------------------------+------------------+----------------+--------------+
+
+

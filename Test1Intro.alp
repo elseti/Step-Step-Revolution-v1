@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Test1Intro" board="Alchitry Au" language="Lucid" version="3">
+  <files>
+    <component>pipeline.luc</component>
+    <src>shifter.luc</src>
+    <component>counter.luc</component>
+    <src>multiplier.luc</src>
+    <src>seven_seg.luc</src>
+    <src>sixteen_boolean.luc</src>
+    <src>comparator.luc</src>
+    <component>decoder.luc</component>
+    <src>multi_seven_seg.luc</src>
+    <src>fsm_module.luc</src>
+    <component>pn_gen.luc</component>
+    <src>timer.luc</src>
+    <src>score_display.luc</src>
+    <src>tester.luc</src>
+    <src>alu.luc</src>
+    <component>reset_conditioner.luc</component>
+    <src top="true">au_top.luc</src>
+    <component>edge_detector.luc</component>
+    <src>sixteen_bit_adder.luc</src>
+    <component>button_conditioner.luc</component>
+    <constraint>custom_au.xdc</constraint>
+    <constraint>custom.acf</constraint>
+  </files>
+</project>

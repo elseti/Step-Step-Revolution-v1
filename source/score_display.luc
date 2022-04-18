@@ -1,0 +1,25 @@
+module score_display (
+    input clk,  // clock
+    input rst,  // reset
+    input score[4],
+    output out1[4],
+    output out2[4]
+  ) {
+
+  
+  always {
+    out1= d0;
+    out2= d0;
+    
+    if(score<d10){
+      out1= d0;
+      out2= score;
+    }
+    else if(score==d10){
+      out1= d1;
+      out2= d0;
+    }
+    
+    
+  }
+}

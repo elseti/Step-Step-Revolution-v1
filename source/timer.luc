@@ -1,0 +1,70 @@
+module timer (
+    input clk,  // clock
+    input rst,  // reset
+    input start,
+    output out1[4],
+    output out2[4], 
+    output isOver, 
+    output test
+  ) {
+  
+  fsm timerState(.clk(clk), .rst(rst))= {INIT, IDLE, COUNT, END};
+  dff digit1[4](#INIT(0), .clk(clk), .rst(rst));
+  dff digit2[4](#INIT(0), .clk(clk), .rst(rst));
+
+  always {
+    out1=4b0;
+    out2= 4b0;
+    isOver=b0;
+    test=b0;
+    
+    if(rst){
+      timerState.d= timerState.INIT;
+    }
+    
+    case(timerState.q){
+      timerState.INIT:
+        out1=4b0;
+        out2= 4b0;
+        test=b1; //test
+        if(start==b1){
+          digit1.d= d3; //30 seconds
+          digit2.d= d0;
+          out1= digit1.q;
+          out2= digit2.q;
+          timerState.d= timerState.COUNT;
+        }
+        
+        
+      timerState.IDLE:
+        if(digit1.q<=4b0 && digit2.q<=4b0){
+          timerState.d= timerState.END;
+        }
+        else{
+          out1= digit1.q;
+          out2= digit2.q;
+          timerState.d= timerState.COUNT;
+        }
+        //do nothing
+        
+      timerState.COUNT:
+        if(digit2.q==d0){
+          digit1.d= digit1.q-1;
+          digit2.d= d9;
+        }
+        else{
+          digit2.d= digit2.q-1;
+        }
+        out1= digit1.q;
+        out2= digit2.q;
+        timerState.d= timerState.IDLE;
+
+      timerState.END:
+        isOver= b1;
+     
+      
+    }
+    
+    
+  }
+}

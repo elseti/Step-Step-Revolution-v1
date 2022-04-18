@@ -1,0 +1,145 @@
+module au_top (
+    input clk,              // 100MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input usb_rx,           // USB->Serial input
+    output usb_tx,          // USB->Serial output
+    output io_led [3][8],   // LEDs on IO Shield
+    output io_seg [8],      // 7-segment LEDs on IO Shield
+    output io_sel [4],      // Digit select on IO Shield
+    input io_dip [3][8],
+    input io_button [5],
+    output seg7[7],
+    output sel[2], 
+    input start_button[1],
+    input button_1[1],
+    input button_2[1],
+    input button_3[1],
+    input button_4[1],
+    input submit_button[1],
+    output led_1[1],
+    output led_2[1],
+    output led_3[1],
+    output led_4[1],
+    output led_submit[1],
+    output timer_seg[8],
+    output timer_sel[2],
+    output score_seg[8],
+    output score_sel[2]
+    
+
+  ) {
+  
+  sig rst;                  // reset signal
+
+    
+  .clk(clk) { //clk
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+    
+    //declare edge detectors for timer and displaying buttons; for use in fsm_module
+    edge_detector edge (#RISE(1), #FALL(0));
+    edge_detector edgeTimer (#RISE(1), #FALL(0));
+    
+    //declare edge detectors for button presses
+    edge_detector edge_detector_b1(#RISE(1),#FALL(0));
+    edge_detector edge_detector_b2(#RISE(1),#FALL(0));
+    edge_detector edge_detector_b3(#RISE(1),#FALL(0));
+    edge_detector edge_detector_b4(#RISE(1),#FALL(0));
+    edge_detector edge_detector_submit(#RISE(1),#FALL(0));
+    edge_detector edge_detector_start(#RISE(1),#FALL(0));
+    
+    //declare button conditioners
+    button_conditioner btn_cond_b1;
+    button_conditioner btn_cond_b2;
+    button_conditioner btn_cond_b3;
+    button_conditioner btn_cond_b4;
+    button_conditioner btn_cond_submit;
+    button_conditioner btn_cond_start;
+      
+    .rst(rst){
+      fsm_module fsmMod;
+      counter slowClock (#SIZE(1), #DIV(26));
+      counter timerClock (#SIZE(1), #DIV(25));
+      multi_seven_seg multiTimer;
+      multi_seven_seg multiScore;
+      score_display scoreDisplay;
+
+    }
+
+  }
+  
+  
+  always {
+    reset_cond.in = ~rst_n; // input raw inverted reset signal
+    rst = reset_cond.out;   // conditioned reset
+    
+    usb_tx = usb_rx;        // loop serial port
+    
+    led = 8h00;             // turn LEDs off
+    
+    io_led = 3x{{8h00}};    // turn LEDs off
+    io_seg = 8hff;          // turn segments off
+    io_sel = 4hf;           // select no digits
+    
+    seg7 = 7b0;
+    sel= 2b0;
+   
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
+    //declarations for button conditioners and edge detectors
+
+    btn_cond_b1.in= button_1; 
+    btn_cond_b2.in= button_2; 
+    btn_cond_b3.in= button_3;
+    btn_cond_b4.in= button_4;
+    btn_cond_submit.in= submit_button;
+    btn_cond_start.in= start_button;
+
+    edge_detector_b1.in=btn_cond_b1.out; 
+    edge_detector_b2.in=btn_cond_b2.out;
+    edge_detector_b3.in=btn_cond_b3.out;
+    edge_detector_b4.in=btn_cond_b4.out;
+    edge_detector_submit.in=btn_cond_submit.out;
+    edge_detector_start.in= btn_cond_start.out;
+    
+    edge.in = slowClock.value;
+    edgeTimer.in= timerClock.value;
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    //declaring inputs to fsmMod
+    fsmMod.button1= edge_detector_b1.out;
+    fsmMod.button2= edge_detector_b2.out;
+    fsmMod.button3= edge_detector_b3.out;
+    fsmMod.button4= edge_detector_b4.out;
+    fsmMod.submit= edge_detector_submit.out;
+    fsmMod.start= edge_detector_start.out;
+    fsmMod.display= edge.out;
+    fsmMod.edgeTimer= edgeTimer.out;
+    
+    //scoreDisplay input
+    scoreDisplay.score= fsmMod.score;
+    
+    //led output declarations
+    led_1= fsmMod.led1;
+    led_2= fsmMod.led2;
+    led_3= fsmMod.led3;
+    led_4= fsmMod.led4;
+    led_submit= fsmMod.ledSubmit;
+
+    //seven segment timer and score output
+    multiTimer.values= {4d0, 4d0, fsmMod.timerOut1, fsmMod.timerOut2};
+    multiScore.values= {4d0, 4d0, scoreDisplay.out1, scoreDisplay.out2};
+
+    timer_seg = multiTimer.seg;
+    timer_sel = ~multiTimer.sel;
+    score_seg= multiScore.seg;
+    score_sel= ~multiScore.sel;
+
+
+    }
+    
+    
+  }
